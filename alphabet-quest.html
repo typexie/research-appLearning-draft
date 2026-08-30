@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Alphabet Quest — Letter Explorers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky:#EAF6FF;
+    --sky-deep:#CDEBFF;
+    --sun:#FFC93C;
+    --sun-dark:#F2A900;
+    --leaf:#43B77A;
+    --leaf-dark:#2E9760;
+    --coral:#FF6F59;
+    --plum:#6A4C93;
+    --ink:#2B2140;
+    --white:#FFFFFF;
+    --font-display:'Baloo 2', system-ui, sans-serif;
+    --font-body:'Atkinson Hyperlegible', system-ui, sans-serif;
+    --radius:20px;
+    --shadow: 0 6px 0 rgba(43,33,64,0.15);
+  }
+  [data-dyslexia="on"]{ --font-display:'Atkinson Hyperlegible', system-ui, sans-serif; }
+  [data-contrast="high"]{
+    --sky:#FFFFFF; --sky-deep:#FFFFFF; --ink:#000000;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:var(--font-body);
+    background:linear-gradient(180deg,var(--sky) 0%, var(--sky-deep) 100%);
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #app{max-width:900px;margin:0 auto;padding:16px 16px 40px;min-height:100vh;display:flex;flex-direction:column;}
+  h1,h2,h3{font-family:var(--font-display); margin:0 0 8px;}
+  h1{font-size:1.9rem;color:var(--plum);}
+  h2{font-size:1.5rem;color:var(--plum);}
+  p{line-height:1.5;font-size:1.05rem;}
+  button{font-family:var(--font-body);cursor:pointer;}
+
+  /* Top bar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 4px 18px;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-badge{
+    width:46px;height:46px;border-radius:50%;
+    background:var(--sun);display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-display);font-weight:800;font-size:1.3rem;color:var(--plum);
+    box-shadow:var(--shadow);
+  }
+  .brand-name{font-family:var(--font-display);font-weight:700;font-size:1.15rem;color:var(--plum);}
+  .icon-btn{
+    border:none;background:var(--white);border-radius:14px;
+    width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+    box-shadow:var(--shadow); font-size:1.2rem;
+  }
+  .icon-btn:active{transform:translateY(3px);box-shadow:none;}
+
+  /* Cards / screens */
+  .screen{
+    background:var(--white);
+    border-radius:28px;
+    padding:28px 22px;
+    box-shadow:0 10px 0 rgba(43,33,64,0.10), 0 2px 20px rgba(43,33,64,0.08);
+    flex:1;
+    display:flex;flex-direction:column;
+    animation:pop .35s ease;
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+
+  .btn{
+    font-family:var(--font-display);font-weight:700;font-size:1.05rem;
+    border:none;border-radius:16px;padding:14px 22px;color:var(--white);
+    background:var(--leaf); box-shadow:0 5px 0 var(--leaf-dark);
+    min-height:52px; min-width:44px;
+    transition:transform .05s;
+  }
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--leaf-dark);}
+  .btn.secondary{background:var(--plum);box-shadow:0 5px 0 #4c3568;}
+  .btn.secondary:active{box-shadow:0 1px 0 #4c3568;}
+  .btn.sun{background:var(--sun);color:var(--ink);box-shadow:0 5px 0 var(--sun-dark);}
+  .btn.sun:active{box-shadow:0 1px 0 var(--sun-dark);}
+  .btn:disabled{opacity:.45;box-shadow:none;transform:none;}
+
+  input[type=text]{
+    font-family:var(--font-body);font-size:1.2rem;padding:14px 16px;
+    border-radius:14px;border:3px solid var(--sky-deep);width:100%;
+    min-height:52px;
+  }
+  input[type=text]:focus, button:focus-visible, .obj-card:focus-visible, .opt-btn:focus-visible{
+    outline:3px solid var(--coral); outline-offset:2px;
+  }
+
+  /* Mascot */
+  .mascot-row{display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+  .mascot{font-size:2.6rem;line-height:1;transition:transform .2s;}
+  .mascot.happy{animation:bounce .5s ease;}
+  .mascot.oops{animation:wobble .4s ease;}
+  @keyframes bounce{0%{transform:translateY(0)}30%{transform:translateY(-14px) rotate(-6deg)}60%{transform:translateY(0) rotate(4deg)}100%{transform:translateY(0)}}
+  @keyframes wobble{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+  .speech-bubble{
+    background:var(--sky); border-radius:14px; padding:10px 14px; font-family:var(--font-display);
+    font-weight:700; color:var(--plum); position:relative;
+  }
+
+  /* Progress */
+  .progress-track{background:var(--sky-deep);border-radius:20px;height:16px;overflow:hidden;margin:10px 0 18px;}
+  .progress-fill{background:var(--sun);height:100%;border-radius:20px;transition:width .4s ease;}
+  .stars{font-size:1.4rem;letter-spacing:4px;}
+
+  /* Grids */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;margin:14px 0;}
+  .obj-card{
+    background:var(--sky); border:3px solid transparent; border-radius:18px; padding:14px 10px;
+    display:flex;flex-direction:column;align-items:center;gap:6px; min-height:120px;
+    box-shadow:0 4px 0 rgba(43,33,64,0.08);
+  }
+  .obj-card:active{transform:translateY(3px);box-shadow:none;}
+  .obj-emoji{font-size:2.8rem;}
+  .obj-word{font-family:var(--font-display);font-weight:700;}
+  .obj-letters{font-family:var(--font-display);font-weight:800;color:var(--coral);font-size:1.3rem;min-height:1.4em;}
+  .clicked{border-color:var(--leaf);background:#E7F8EE;}
+
+  .replay-btn{
+    border:none;background:var(--plum);color:var(--white);border-radius:50%;
+    width:44px;height:44px;font-size:1.1rem;box-shadow:0 4px 0 #4c3568;
+  }
+  .replay-btn:active{transform:translateY(3px);box-shadow:none;}
+
+  /* Matching (Level 2) */
+  .match-wrap{display:flex;flex-wrap:wrap;gap:22px;justify-content:center;margin-top:10px;}
+  .letters-col, .pics-col{display:flex;flex-direction:column;gap:12px;min-width:130px;}
+  .letter-chip{
+    font-family:var(--font-display);font-weight:800;font-size:1.6rem;
+    background:var(--sun);border:4px solid var(--sun-dark);border-radius:16px;
+    padding:12px;text-align:center;min-height:52px;
+  }
+  .letter-chip.selected{background:var(--coral);border-color:#c9483a;color:var(--white);}
+  .pic-chip{
+    background:var(--sky);border:4px solid transparent;border-radius:16px;
+    padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:80px;
+  }
+  .pic-chip .obj-emoji{font-size:2.2rem;}
+  .pic-chip.correct{border-color:var(--leaf);background:#E7F8EE;}
+  .pic-chip.wrong{border-color:var(--coral);background:#FFECEA;}
+  .pic-chip.matched{opacity:.5;}
+
+  /* Options for L3 */
+  .opt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:12px;margin-top:14px;}
+  .opt-btn{
+    font-family:var(--font-display);font-weight:800;font-size:1.5rem;
+    background:var(--sky);border:4px solid var(--sky-deep);border-radius:16px;
+    padding:16px 8px;min-height:64px;
+  }
+  .opt-btn.correct{background:#E7F8EE;border-color:var(--leaf);}
+  .opt-btn.wrong{background:#FFECEA;border-color:var(--coral);}
+  .opt-btn:disabled{opacity:.6;}
+
+  .word-display{font-family:var(--font-display);font-weight:800;font-size:2.4rem;text-align:center;
+    letter-spacing:4px;color:var(--plum);margin:14px 0;}
+  .big-emoji{font-size:4rem;text-align:center;margin:6px 0;}
+
+  .feedback{font-family:var(--font-display);font-weight:700;min-height:1.6em;margin-top:8px;}
+  .feedback.good{color:var(--leaf-dark);}
+  .feedback.retry{color:var(--coral);}
+
+  .footer-actions{display:flex;gap:12px;justify-content:space-between;margin-top:22px;flex-wrap:wrap;}
+
+  /* Settings panel */
+  .settings-panel{
+    position:fixed; inset:0; background:rgba(43,33,64,.45); display:none; align-items:center; justify-content:center; z-index:50; padding:16px;
+  }
+  .settings-panel.open{display:flex;}
+  .settings-card{background:var(--white);border-radius:22px;padding:22px;max-width:420px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.25);}
+  .setting-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:2px solid var(--sky);}
+  .setting-row:last-child{border-bottom:none;}
+  .toggle{
+    width:52px;height:30px;border-radius:20px;background:var(--sky-deep);border:none;position:relative;flex:none;
+  }
+  .toggle.on{background:var(--leaf);}
+  .toggle::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;background:var(--white);border-radius:50%;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .toggle.on::after{left:25px;}
+  input[type=range]{width:130px;}
+
+  .small-muted{font-size:.85rem;color:#6b6180;}
+  .level-badge{
+    display:inline-block; font-family:var(--font-display); font-weight:700; font-size:.8rem;
+    background:var(--sky); color:var(--plum); padding:4px 12px; border-radius:20px; margin-bottom:10px;
+  }
+  table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:12px;}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--sky-deep);}
+  th{font-family:var(--font-display);color:var(--plum);}
+  .table-wrap{max-height:260px;overflow:auto;border:2px solid var(--sky);border-radius:12px;margin-top:8px;}
+
+  @media (max-width:480px){
+    h1{font-size:1.5rem;} .obj-emoji{font-size:2.3rem;} .big-emoji{font-size:3.2rem;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .mascot.happy,.mascot.oops,.screen{animation:none;}
+  }
+</style>
+</head>
+<body>
+<div id="app" data-dyslexia="off" data-contrast="normal"></div>
+
+<div class="settings-panel" id="settingsPanel" role="dialog" aria-label="Accessibility settings">
+  <div class="settings-card">
+    <h2>Settings</h2>
+    <div class="setting-row">
+      <div><strong>Dyslexia-friendly font</strong><div class="small-muted">Uses Atkinson Hyperlegible everywhere</div></div>
+      <button class="toggle" id="toggleDyslexia" onclick="toggleSetting('dyslexia')" aria-label="Toggle dyslexia-friendly font"></button>
+    </div>
+    <div class="setting-row">
+      <div><strong>High contrast</strong><div class="small-muted">Stronger black &amp; white contrast</div></div>
+      <button class="toggle" id="toggleContrast" onclick="toggleSetting('contrast')" aria-label="Toggle high contrast"></button>
+    </div>
+    <div class="setting-row">
+      <div><strong>Audio speed</strong><div class="small-muted" id="speedLabel">Normal</div></div>
+      <input type="range" min="0.6" max="1.3" step="0.1" value="0.9" id="speedSlider" oninput="setSpeed(this.value)">
+    </div>
+    <div class="setting-row">
+      <div><strong>Export learner data</strong><div class="small-muted">Download CSV of this session's log</div></div>
+      <button class="btn sun" style="padding:8px 14px;font-size:.85rem;" onclick="exportCSV()">Export</button>
+    </div>
+    <div style="text-align:right;margin-top:12px;">
+      <button class="btn secondary" onclick="closeSettings()">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ALPHABET QUEST — Grade 2 Alphabet Learning Game
+   Self-contained single-file app. Uses browser speech synthesis
+   for audio (no external audio assets needed) and window.storage
+   for persistent per-learner research logging.
+   ============================================================ */
+
+// ---------- Content ----------
+const OBJECTS = [
+  {letter:'B', word:'Ball', emoji:'⚽', sound:'buh'},
+  {letter:'D', word:'Dog',  emoji:'🐶', sound:'duh'},
+  {letter:'P', word:'Pig',  emoji:'🐷', sound:'puh'},
+  {letter:'M', word:'Mouse',emoji:'🐭', sound:'muh'},
+  {letter:'N', word:'Nest', emoji:'🪺', sound:'nuh'},
+  {letter:'S', word:'Sun',  emoji:'☀️', sound:'suh'},
+  {letter:'K', word:'Kite', emoji:'🪁', sound:'kuh'},
+  {letter:'V', word:'Van',  emoji:'🚐', sound:'vuh'},
+];
+const CONFUSABLE_PAIRS = [['B','D'],['M','N'],['P','B']];
+
+const L3_ITEMS = [
+  {type:'missing', word:'BALL', missingIndex:0, answer:'B', options:['B','D','P'], obj:OBJECTS[0]},
+  {type:'audioToLetter', obj:OBJECTS[1], options:['D','B','P']},
+  {type:'imageToLetter', obj:OBJECTS[2], options:['P','B','Q']},
+  {type:'caseMatch', upper:'M', lowerOptions:['n','m','w']},
+  {type:'missing', word:'SUN', missingIndex:0, answer:'S', options:['S','C','Z'], obj:OBJECTS[5]},
+  {type:'audioToLetter', obj:OBJECTS[6], options:['K','C','V']},
+  {type:'imageToLetter', obj:OBJECTS[7], options:['V','U','N']},
+  {type:'caseMatch', upper:'D', lowerOptions:['b','d','p']},
+];
+
+// ---------- State ----------
+let state = {
+  screen: 'welcome',
+  learnerId: '',
+  level: 0,
+  settings: { dyslexia:false, contrast:false, rate:0.9 },
+  sessionStart: null,
+  events: [],
+  l1: { clicked:{}, replayCounts:{} },
+  l2: { pairs:[], selectedLetter:null, matched:{}, attempts:{}, confusions:[] },
+  l3: { index:0, correctCount:0, wrongStreak:0, itemStart:null, attemptsThisItem:0 },
+};
+
+const synth = window.speechSynthesis;
+
+function speak(text, cb){
+  try{
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = state.settings.rate;
+    u.pitch = 1.05;
+    if(cb) u.onend = cb;
+    synth.speak(u);
+  }catch(e){ if(cb) cb(); }
+}
+
+function logEvent(activityType, extra){
+  const ev = Object.assign({
+    timestamp: new Date().toISOString(),
+    learnerId: state.learnerId,
+    level: state.level,
+    activityType,
+  }, extra || {});
+  state.events.push(ev);
+  persistLog();
+}
+
+async function persistLog(){
+  try{
+    const key = 'log:' + (state.learnerId || 'anonymous');
+    let existing = [];
+    try{
+      const res = await window.storage.get(key);
+      if(res && res.value) existing = JSON.parse(res.value);
+    }catch(e){ existing = []; }
+    existing = state.events; // this session's running log becomes source of truth for this key
+    await window.storage.set(key, JSON.stringify(existing));
+  }catch(e){ /* storage unavailable — logging stays in memory only */ }
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+// ---------- Render root ----------
+function render(){
+  const app = document.getElementById('app');
+  app.dataset.dyslexia = state.settings.dyslexia ? 'on' : 'off';
+  app.dataset.contrast = state.settings.contrast ? 'high' : 'normal';
+  let html = topbarHTML();
+  if(state.screen==='welcome') html += welcomeScreen();
+  else if(state.screen==='levelSelect') html += levelSelectScreen();
+  else if(state.screen==='level1') html += level1Screen();
+  else if(state.screen==='level2') html += level2Screen();
+  else if(state.screen==='level3') html += level3Screen();
+  else if(state.screen==='end') html += endScreen();
+  app.innerHTML = html;
+  if(state.screen==='level2') wireLevel2();
+}
+
+function topbarHTML(){
+  return `
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-badge">Aa</div>
+      <div class="brand-name">Alphabet Quest</div>
+    </div>
+    <button class="icon-btn" onclick="openSettings()" aria-label="Open settings">⚙️</button>
+  </div>`;
+}
+
+// ---------- Welcome ----------
+function welcomeScreen(){
+  return `
+  <div class="screen">
+    <div class="mascot-row">
+      <div class="mascot" id="mascot">🐛</div>
+      <div class="speech-bubble">Hi there! I'm Cami the Caterpillar. What's your name?</div>
+    </div>
+    <h1>Let's learn letters together!</h1>
+    <p>Type your name (or your learner ID) to start your alphabet adventure.</p>
+    <input type="text" id="nameInput" placeholder="Your name" maxlength="24" autocomplete="off">
+    <div class="footer-actions">
+      <div></div>
+      <button class="btn" onclick="startSession()">Let's go! 🚀</button>
+    </div>
+  </div>`;
+}
+
+function startSession(){
+  const val = document.getElementById('nameInput').value.trim();
+  state.learnerId = val || ('learner-' + Math.random().toString(36).slice(2,7));
+  state.sessionStart = Date.now();
+  logEvent('session_start', {});
+  state.screen = 'levelSelect';
+  render();
+}
+
+// ---------- Level Select ----------
+function levelSelectScreen(){
+  return `
+  <div class="screen">
+    <div class="mascot-row">
+      <div class="mascot">🐛</div>
+      <div class="speech-bubble">Great to meet you, ${escapeHTML(state.learnerId)}! Pick a level to start.</div>
+    </div>
+    <h1>Choose your adventure</h1>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+      ${levelCard(1,'Explore','Meet objects, letters and sounds. No scoring — just discovery!','🔎', 'var(--leaf)')}
+      ${levelCard(2,'Match','Match letters to pictures. Watch out for tricky look-alikes!','🧩', 'var(--sun)')}
+      ${levelCard(3,'Challenge','Mixed puzzles: fill-ins, sounds, and upper/lowercase!','🏆', 'var(--coral)')}
+    </div>
+  </div>`;
+}
+function levelCard(n,title,desc,emoji,color){
+  return `
+  <button class="obj-card" style="min-height:170px;background:${color}22;" onclick="goToLevel(${n})">
+    <span class="obj-emoji">${emoji}</span>
+    <span class="obj-word">Level ${n}: ${title}</span>
+    <span class="small-muted" style="text-align:center;">${desc}</span>
+  </button>`;
+}
+function goToLevel(n){
+  state.level = n;
+  if(n===1){ state.l1 = {clicked:{}, replayCounts:{}}; state.screen='level1'; }
+  if(n===2){ setupLevel2(); state.screen='level2'; }
+  if(n===3){ state.l3 = {index:0, correctCount:0, wrongStreak:0, itemStart:Date.now(), attemptsThisItem:0}; state.screen='level3'; }
+  logEvent('level_start', {});
+  render();
+}
+
+// ---------- Level 1 ----------
+function level1Screen(){
+  const clickedCount = Object.keys(state.l1.clicked).length;
+  const pct = Math.round((clickedCount/OBJECTS.length)*100);
+  return `
+  <div class="screen">
+    <span class="level-badge">Level 1 · Explore</span>
+    <div class="mascot-row">
+      <div class="mascot" id="mascot">🐛</div>
+      <div class="speech-bubble">Tap a picture to hear its name and letter!</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="grid">
+      ${OBJECTS.map((o,i)=>objCard(o,i)).join('')}
+    </div>
+    <div class="footer-actions">
+      <button class="btn secondary" onclick="backToLevels()">← Levels</button>
+      <button class="btn" ${clickedCount<OBJECTS.length?'disabled':''} onclick="goToLevel(2)">Next: Match 🧩</button>
+    </div>
+  </div>`;
+}
+function objCard(o,i){
+  const clicked = state.l1.clicked[o.letter];
+  return `
+  <button class="obj-card ${clicked?'clicked':''}" onclick="clickObject(${i})" aria-label="${o.word}">
+    <span class="obj-emoji">${o.emoji}</span>
+    <span class="obj-word">${o.word}</span>
+    <span class="obj-letters">${clicked ? o.letter+' '+o.letter.toLowerCase() : ''}</span>
+    <span class="replay-btn" onclick="event.stopPropagation(); replayObject(${i})" aria-label="Replay audio for ${o.word}">🔊</span>
+  </button>`;
+}
+function clickObject(i){
+  const o = OBJECTS[i];
+  const first = !state.l1.clicked[o.letter];
+  state.l1.clicked[o.letter] = (state.l1.clicked[o.letter]||0)+1;
+  bounceMascot('happy');
+  speak(`${o.letter}. ${o.word}. ${o.letter} says ${o.sound}.`);
+  logEvent('l1_click', { item:o.word, letter:o.letter, firstTime:first, timesClicked: state.l1.clicked[o.letter] });
+  render();
+}
+function replayObject(i){
+  const o = OBJECTS[i];
+  state.l1.replayCounts[o.letter] = (state.l1.replayCounts[o.letter]||0)+1;
+  speak(`${o.letter}. ${o.word}. ${o.letter} says ${o.sound}.`);
+  logEvent('audio_replay', { item:o.word, letter:o.letter, replayCount: state.l1.replayCounts[o.letter] });
+}
+function backToLevels(){ state.screen='levelSelect'; render(); }
+
+// ---------- Level 2 ----------
+function setupLevel2(){
+  const pool = shuffle(OBJECTS).slice(0,6);
+  state.l2 = { pairs: pool, selectedLetter:null, matched:{}, attempts:{}, confusions:[] };
+}
+function level2Screen(){
+  const l2 = state.l2;
+  const letters = shuffle(l2.pairs.map(o=>o.letter));
+  const pics = shuffle(l2.pairs);
+  const matchedCount = Object.keys(l2.matched).length;
+  const pct = Math.round((matchedCount/l2.pairs.length)*100);
+  const stored = level2Screen._layout;
+  // Keep a stable layout across re-renders within this level visit
+  if(!state.l2._letters){ state.l2._letters = letters; state.l2._pics = pics; }
+  return `
+  <div class="screen">
+    <span class="level-badge">Level 2 · Match</span>
+    <div class="mascot-row">
+      <div class="mascot" id="mascot">🐛</div>
+      <div class="speech-bubble" id="l2Bubble">Tap a letter, then tap its matching picture!</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="match-wrap">
+      <div class="letters-col" id="lettersCol">
+        ${state.l2._letters.map(l=>`<button class="letter-chip ${l2.selectedLetter===l?'selected':''} ${l2.matched[l]?'matched':''}" data-letter="${l}" ${l2.matched[l]?'disabled':''}>${l}</button>`).join('')}
+      </div>
+      <div class="pics-col" id="picsCol">
+        ${state.l2._pics.map(o=>`<button class="pic-chip" data-letter="${o.letter}" ${l2.matched[o.letter]?'disabled':''}>
+            <span class="obj-emoji">${o.emoji}</span><span class="obj-word">${o.word}</span>
+          </button>`).join('')}
+      </div>
+    </div>
+    <div class="footer-actions">
+      <button class="btn secondary" onclick="backToLevels()">← Levels</button>
+      <button class="btn" ${matchedCount<l2.pairs.length?'disabled':''} onclick="goToLevel(3)">Next: Challenge 🏆</button>
+    </div>
+  </div>`;
+}
+function wireLevel2(){
+  document.getElementById('lettersCol').querySelectorAll('.letter-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>selectLetter(btn.dataset.letter));
+  });
+  document.getElementById('picsCol').querySelectorAll('.pic-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>selectPic(btn.dataset.letter, btn));
+  });
+}
+function selectLetter(letter){
+  state.l2.selectedLetter = letter;
+  speak(letter);
+  render();
+}
+function selectPic(letter, btnEl){
+  if(!state.l2.selectedLetter) { bumpBubble('Pick a letter first!'); return; }
+  const sel = state.l2.selectedLetter;
+  const target = state.l2.pairs.find(o=>o.letter===sel);
+  state.l2.attempts[sel] = (state.l2.attempts[sel]||0)+1;
+  if(letter===sel){
+    state.l2.matched[sel] = true;
+    bounceMascot('happy');
+    speak(`Yes! ${sel} for ${target.word}!`);
+    logEvent('l2_match', { letter:sel, item:target.word, correct:true, attempts: state.l2.attempts[sel] });
+    state.l2.selectedLetter = null;
+    render();
+  } else {
+    bounceMascot('oops');
+    const missedObj = state.l2.pairs.find(o=>o.letter===letter);
+    state.l2.confusions.push({expected:sel, chosen:letter});
+    logEvent('l2_match', { letter:sel, item: missedObj? missedObj.word: '', correct:false, attempts: state.l2.attempts[sel], confusedWith:letter });
+    speak(`Not quite — try again!`);
+    btnEl.classList.add('wrong');
+    setTimeout(()=>btnEl.classList.remove('wrong'), 500);
+  }
+}
+function bumpBubble(text){
+  const b = document.getElementById('l2Bubble');
+  if(b) b.textContent = text;
+}
+
+// ---------- Level 3 ----------
+function level3Screen(){
+  const l3 = state.l3;
+  if(l3.index >= L3_ITEMS.length){
+    state.screen='end'; render(); return '';
+  }
+  const item = L3_ITEMS[l3.index];
+  const pct = Math.round((l3.index/L3_ITEMS.length)*100);
+  let body = '';
+  if(item.type==='missing'){
+    const displayWord = item.word.split('').map((c,i)=> i===item.missingIndex ? '_' : c).join('');
+    body = `
+      <p><strong>Fill in the missing letter:</strong></p>
+      <div class="big-emoji">${item.obj.emoji}</div>
+      <div class="word-display">${displayWord}</div>
+      <div class="opt-grid">${item.options.map(o=>`<button class="opt-btn" data-ans="${o}">${o}</button>`).join('')}</div>`;
+  } else if(item.type==='audioToLetter'){
+    body = `
+      <p><strong>Listen, then choose the matching letter:</strong></p>
+      <div style="text-align:center;margin:14px 0;">
+        <button class="replay-btn" style="width:64px;height:64px;font-size:1.6rem;" onclick="playL3Audio()">🔊</button>
+      </div>
+      <div class="opt-grid">${item.options.map(o=>`<button class="opt-btn" data-ans="${o}">${o}</button>`).join('')}</div>`;
+  } else if(item.type==='imageToLetter'){
+    body = `
+      <p><strong>What letter does this start with?</strong></p>
+      <div class="big-emoji">${item.obj.emoji}</div>
+      <p class="small-muted" style="text-align:center;">${item.obj.word}</p>
+      <div class="opt-grid">${item.options.map(o=>`<button class="opt-btn" data-ans="${o}">${o}</button>`).join('')}</div>`;
+  } else if(item.type==='caseMatch'){
+    body = `
+      <p><strong>Match the lowercase letter to:</strong></p>
+      <div class="word-display">${item.upper}</div>
+      <div class="opt-grid">${item.lowerOptions.map(o=>`<button class="opt-btn" data-ans="${o}">${o}</button>`).join('')}</div>`;
+  }
+  return `
+  <div class="screen">
+    <span class="level-badge">Level 3 · Challenge (${l3.index+1}/${L3_ITEMS.length})</span>
+    <div class="mascot-row">
+      <div class="mascot" id="mascot">🐛</div>
+      <div class="stars">${'⭐'.repeat(l3.correctCount)}${'☆'.repeat(L3_ITEMS.length-l3.correctCount)}</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+    ${body}
+    <div class="feedback" id="l3Feedback"></div>
+    <div class="footer-actions">
+      <button class="btn secondary" onclick="backToLevels()">← Levels</button>
+      <div></div>
+    </div>
+  </div>`;
+}
+// wire options after render via delegation (simplify: re-attach each render)
+document.addEventListener('click', function(e){
+  if(state.screen==='level3'){
+    const optBtn = e.target.closest('.opt-btn');
+    if(optBtn && !optBtn.disabled){ answerL3(optBtn); }
+  }
+});
+function currentL3Item(){ return L3_ITEMS[state.l3.index]; }
+function playL3Audio(){
+  const item = currentL3Item();
+  if(item.type==='audioToLetter') speak(item.obj.sound + ', ' + item.obj.sound);
+}
+function correctAnswerFor(item){
+  if(item.type==='missing') return item.answer;
+  if(item.type==='audioToLetter') return item.obj.letter;
+  if(item.type==='imageToLetter') return item.obj.letter;
+  if(item.type==='caseMatch') return item.upper.toLowerCase();
+}
+function answerL3(btnEl){
+  const item = currentL3Item();
+  const chosen = btnEl.dataset.ans;
+  const correct = correctAnswerFor(item);
+  state.l3.attemptsThisItem = (state.l3.attemptsThisItem||0)+1;
+  const isRight = chosen === correct;
+  const rt = state.l3.itemStart ? (Date.now()-state.l3.itemStart) : null;
+  logEvent('l3_answer', {
+    itemType:item.type,
+    item: item.obj ? item.obj.word : (item.word||item.upper),
+    chosen, correct:isRight, attempts: state.l3.attemptsThisItem, responseTimeMs: rt
+  });
+  const fb = document.getElementById('l3Feedback');
+  if(isRight){
+    btnEl.classList.add('correct');
+    bounceMascot('happy');
+    speak('Great job!');
+    if(fb){ fb.textContent = 'Great job! 🎉'; fb.className='feedback good'; }
+    state.l3.correctCount++;
+    state.l3.wrongStreak = 0;
+    document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true);
+    setTimeout(()=>{ advanceL3(); }, 900);
+  } else {
+    btnEl.classList.add('wrong');
+    bounceMascot('oops');
+    speak('Try again!');
+    state.l3.wrongStreak++;
+    if(fb){
+      fb.textContent = state.l3.wrongStreak>=3 ? `Hint: it starts like "${item.obj ? item.obj.sound : ''}"` : 'Not quite — try again!';
+      fb.className='feedback retry';
+    }
+  }
+}
+function advanceL3(){
+  state.l3.index++;
+  state.l3.itemStart = Date.now();
+  state.l3.attemptsThisItem = 0;
+  render();
+}
+
+// ---------- End screen ----------
+function endScreen(){
+  const elapsedMin = state.sessionStart ? Math.round((Date.now()-state.sessionStart)/60000) : 0;
+  logEndOnce();
+  return `
+  <div class="screen">
+    <div class="mascot-row">
+      <div class="mascot happy">🐛✨</div>
+      <div class="speech-bubble">You did it, ${escapeHTML(state.learnerId)}!</div>
+    </div>
+    <h1>Great job, see you next time!</h1>
+    <p>You explored letters, matched pictures, and solved challenges in about ${elapsedMin} minute${elapsedMin===1?'':'s'}.</p>
+    <div class="stars">${'⭐'.repeat(state.l3.correctCount||0)}</div>
+    <div class="footer-actions">
+      <button class="btn secondary" onclick="restartAll()">Start over</button>
+      <button class="btn sun" onclick="openSettings()">View / export data</button>
+    </div>
+  </div>`;
+}
+let _endLogged = false;
+function logEndOnce(){
+  if(_endLogged) return;
+  _endLogged = true;
+  logEvent('session_end', { totalTimeMs: state.sessionStart ? Date.now()-state.sessionStart : null, level3Correct: state.l3.correctCount });
+}
+function restartAll(){
+  _endLogged = false;
+  state.screen='welcome';
+  state.level=0;
+  render();
+}
+
+// ---------- Mascot / feedback helpers ----------
+function bounceMascot(kind){
+  const m = document.getElementById('mascot');
+  if(!m) return;
+  m.classList.remove('happy','oops');
+  void m.offsetWidth;
+  m.classList.add(kind);
+}
+
+// ---------- Settings ----------
+function openSettings(){ document.getElementById('settingsPanel').classList.add('open'); }
+function closeSettings(){ document.getElementById('settingsPanel').classList.remove('open'); }
+function toggleSetting(key){
+  state.settings[key] = !state.settings[key];
+  document.getElementById(key==='dyslexia'?'toggleDyslexia':'toggleContrast').classList.toggle('on', state.settings[key]);
+  render();
+}
+function setSpeed(v){
+  state.settings.rate = parseFloat(v);
+  const label = v<0.8?'Slow':(v>1.05?'Fast':'Normal');
+  document.getElementById('speedLabel').textContent = label + ' (' + v + 'x)';
+}
+
+// ---------- Export ----------
+function toCSV(events){
+  if(!events.length) return 'timestamp,learnerId,level,activityType\n(no events yet)';
+  const cols = ['timestamp','learnerId','level','activityType','item','letter','correct','attempts','responseTimeMs','replayCount','firstTime','chosen','confusedWith'];
+  const header = cols.join(',');
+  const rows = events.map(ev => cols.map(c => {
+    let v = ev[c];
+    if(v===undefined || v===null) return '';
+    v = String(v).replace(/"/g,'""');
+    return /[",\n]/.test(v) ? `"${v}"` : v;
+  }).join(','));
+  return [header, ...rows].join('\n');
+}
+function exportCSV(){
+  const csv = toCSV(state.events);
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `alphabet-quest_${state.learnerId||'learner'}_${Date.now()}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function escapeHTML(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- Init ----------
+render();
+</script>
+</body>
+</html>
