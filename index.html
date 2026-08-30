@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Alphabet Quest with Carl the Bird</title>
+<title>Letter Squared</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
@@ -154,7 +154,7 @@ p{margin:0;}
 .big-btn.success{ background:linear-gradient(180deg,var(--success),var(--success-dark)); box-shadow:0 6px 0 rgba(30,90,60,0.45); }
 .big-btn.success:active{ box-shadow:0 1px 0 rgba(30,90,60,0.45); }
 
-/* Carl mascot */
+/* Boxd mascot */
 #carlWrap{
   position:absolute;
   right:16px; bottom:16px;
@@ -456,7 +456,7 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
 
   <header id="topbar">
     <button class="icon-btn" id="homeBtn" aria-label="Home">🏠</button>
-    <div id="progressBarWrap" role="progressbar" aria-label="Stars earned this pack" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0"></div>
+    <div id="progressBarWrap" role="progressbar" aria-label="Stars earned this level" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0"></div>
     <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙️</button>
   </header>
 
@@ -465,15 +465,15 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
     <button class="nav-arrow nav-arrow-right hide" id="navRightBtn" aria-label="Next activity">›</button>
 
     <section class="screen" id="screen-welcome">
-      <h1 class="screen-title welcome-title">Alphabet Quest</h1>
-      <p class="screen-instruction">Type your name so Carl knows who's playing!</p>
+      <h1 class="screen-title welcome-title">Letter Squared</h1>
+      <p class="screen-instruction">Type your name so Boxd knows who's playing!</p>
       <input id="nameInput" class="name-input" maxlength="12" placeholder="Type your name" aria-label="Your name">
       <button class="big-btn" id="startBtn">Let's play! ▶️</button>
     </section>
 
     <section class="screen" id="screen-levelmenu">
-      <h1 class="screen-title" id="levelmenu-greeting">Pick a pack!</h1>
-      <p class="screen-instruction">Follow Carl's trail and open a pack to start.</p>
+      <h1 class="screen-title" id="levelmenu-greeting">Pick a level!</h1>
+      <p class="screen-instruction">Follow Boxd's trail and open a level to start.</p>
       <div id="levelmenu-path"></div>
     </section>
 
@@ -518,10 +518,10 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
     </section>
 
     <section class="screen" id="screen-interstitial">
-      <h1 class="screen-title" id="interstitial-title">Pack Complete!</h1>
+      <h1 class="screen-title" id="interstitial-title">Level Complete!</h1>
       <div class="interstitial-badge">🌟</div>
       <p class="screen-instruction" id="interstitial-sub"></p>
-      <button class="big-btn success" id="interstitialNext">Next pack ▶️</button>
+      <button class="big-btn success" id="interstitialNext">Next level ▶️</button>
     </section>
 
     <section class="screen" id="screen-end">
@@ -539,7 +539,7 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
 
   <div id="carlWrap">
     <div id="carlBubble"></div>
-    <svg id="carlSvg" viewBox="-16 0 136 100" role="img" aria-label="Carl the bird mascot">
+    <svg id="carlSvg" viewBox="-16 0 136 100" role="img" aria-label="Boxd the bird mascot">
       <g id="carlBody">
         <path d="M2 72 Q -8 60 4 50 Q 16 52 16 66 Q 17 76 6 76 Q 2 76 2 72 Z" fill="#5B93D6"/>
         <path d="M6 78 Q -6 74 0 64 Q 12 64 14 74 Q 14 80 6 78 Z" fill="#7FB4EC"/>
@@ -585,7 +585,7 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
   <div class="modal-overlay" id="breakModal">
     <div class="modal-box" role="dialog" aria-label="Take a break">
       <h2>Take a stretch break?</h2>
-      <p class="break-text">You've been playing a while. Carl thinks a little stretch would feel great!</p>
+      <p class="break-text">You've been playing a while. Boxd thinks a little stretch would feel great!</p>
       <div class="break-actions">
         <button class="big-btn success" id="breakYes">Yes, stretch! 🙆</button>
         <button class="big-btn plum" id="breakNo">Keep playing ▶️</button>
@@ -661,7 +661,7 @@ function speak(text){
 
 function reducedMotion(){ return body.getAttribute('data-motion') === 'reduced'; }
 
-/* ---------- Carl controller ---------- */
+/* ---------- Boxd controller ---------- */
 var carlWrap = $('#carlWrap');
 var carlSvg = $('#carlSvg');
 var carlBubble = $('#carlBubble');
@@ -683,12 +683,12 @@ function carlSetState(s){
 }
 carlSvg.parentElement.className = 'carl-idle';
 
-/* tap Carl (or his SVG) to hear the last thing again, at any time */
+/* tap Boxd (or his SVG) to hear the last thing again, at any time */
 carlSvg.style.pointerEvents = 'auto';
 carlSvg.style.cursor = 'pointer';
 carlSvg.setAttribute('role','button');
 carlSvg.setAttribute('tabindex','0');
-carlSvg.setAttribute('aria-label','Carl the bird. Tap to hear that again.');
+carlSvg.setAttribute('aria-label','Boxd the bird. Tap to hear that again.');
 function replayLastSpeech(){
   if(state.lastSpeech){ speak(state.lastSpeech); carlSetState('nudge'); }
 }
@@ -866,7 +866,7 @@ $('#breakNo').addEventListener('click', function(){
 
 /* ---------- LEVEL MENU ---------- */
 function renderLevelMenu(){
-  $('#levelmenu-greeting').textContent = state.name ? ('Nice work, ' + state.name + '!') : 'Pick a pack!';
+  $('#levelmenu-greeting').textContent = state.name ? ('Nice work, ' + state.name + '!') : 'Pick a level!';
   var path = $('#levelmenu-path');
   path.innerHTML = '';
   PACKS.forEach(function(pack, idx){
@@ -876,16 +876,16 @@ function renderLevelMenu(){
     stone.className = 'pack-stone' + (locked ? ' locked' : '');
     stone.setAttribute('role','button');
     stone.setAttribute('tabindex', locked ? '-1' : '0');
-    stone.setAttribute('aria-label', 'Pack ' + pack.range + (locked?' locked':''));
+    stone.setAttribute('aria-label', 'Level ' + pack.range + (locked?' locked':''));
     stone.innerHTML =
       '<div class="stone-icon">' + (locked ? '🔒' : pack.range.split(' ')[0]) + '</div>' +
-      '<div class="stone-info"><h3>Pack ' + pack.id + ': ' + pack.range + '</h3>' +
+      '<div class="stone-info"><h3>Level ' + pack.id + ': ' + pack.range + '</h3>' +
       '<div class="stone-stars">' + (locked ? 'Locked' : ('⭐'.repeat(stars) + '☆'.repeat(5-stars))) + '</div></div>';
     if(!locked){
       var open = function(pIdx){ return function(){
         state.packIndex = pIdx;
         state.levelIndex = 0;
-        carlSay('Pack ' + PACKS[pIdx].id + ', here we go!', 'greet');
+        carlSay('Level ' + PACKS[pIdx].id + ', here we go!', 'greet');
         startLevel();
       };};
       stone.addEventListener('click', open(idx));
@@ -1096,7 +1096,7 @@ function renderLevel3(){
   function loadNext(){
     if(queue.length === 0){
       confettiBurst(50);
-      carlSay('You built the whole pack!', 'celebrate');
+      carlSay('You built the whole level!', 'celebrate');
       setTimeout(finishViewedLevel, 900);
       return;
     }
@@ -1395,14 +1395,14 @@ function renderLevel5(){
 /* ---------- interstitial ---------- */
 function showInterstitial(){
   var pack = currentPack();
-  $('#interstitial-title').textContent = 'Pack ' + pack.id + ' Complete!';
+  $('#interstitial-title').textContent = 'Level ' + pack.id + ' Complete!';
   $('#interstitial-sub').textContent = 'You mastered ' + pack.range + '! Great job, ' + state.name + '.';
   confettiBurst(80);
-  carlSay('Pack complete! You did it!', 'celebrate');
+  carlSay('Level complete! You did it!', 'celebrate');
   showScreen('interstitial');
   var nextBtn = $('#interstitialNext');
   var isLast = state.packIndex >= PACKS.length - 1;
-  nextBtn.textContent = isLast ? 'See my results 🏁' : 'Next pack ▶️';
+  nextBtn.textContent = isLast ? 'See my results 🏁' : 'Next level ▶️';
   nextBtn.onclick = function(){
     if(isLast){
       showEndScreen();
