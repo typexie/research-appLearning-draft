@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Alphabet Quest with Carl</title>
+<title>Alphabet Quest with Carl the Bird</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
@@ -94,9 +94,15 @@ p{margin:0;}
   flex:1;
   border-radius:999px;
   background:rgba(46,58,70,0.08);
-  transition:background var(--dur-trans) ease, transform var(--dur-micro) ease;
+  transition:background var(--dur-trans) ease, transform var(--dur-micro) ease, box-shadow var(--dur-micro) ease;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; color:var(--white); font-family:var(--font-display); font-weight:700;
+  padding:0; height:100%;
 }
-.progress-seg.filled{ background:linear-gradient(180deg,var(--yellow),var(--yellow-dark)); }
+.progress-seg:disabled{ cursor:not-allowed; }
+.progress-seg:not(:disabled){ cursor:pointer; }
+.progress-seg.filled{ background:linear-gradient(180deg,var(--yellow),var(--yellow-dark)); color:var(--ink); }
+.progress-seg.current{ box-shadow:inset 0 0 0 2px var(--plum); }
 .progress-seg.pop{ animation:segPop 500ms ease; }
 @keyframes segPop{ 0%{transform:scaleY(1);} 40%{transform:scaleY(1.6);} 100%{transform:scaleY(1);} }
 
@@ -106,18 +112,22 @@ p{margin:0;}
   display:none;
   flex-direction:column;
   align-items:center;
-  padding:10px 18px 130px;
+  padding:10px 44px 130px;
   overflow-y:auto;
-  opacity:0;
-  transform:translateX(24px);
 }
-.screen.active{ display:flex; }
-.screen.enter{ animation:screenIn var(--dur-trans) ease forwards; }
+/* .active is the resting, fully-visible state a screen sits in once any
+   enter/leave animation has finished — this is intentionally NOT dependent
+   on animation fill-mode so the content can never get stuck invisible. */
+.screen.active{ display:flex; opacity:1; transform:translateX(0); }
+.screen.leave{ display:flex; }
+.screen.enter{ animation:screenIn var(--dur-trans) ease; }
 .screen.leave{ animation:screenOut var(--dur-trans) ease forwards; }
 @keyframes screenIn{ from{opacity:0;transform:translateX(28px);} to{opacity:1;transform:translateX(0);} }
 @keyframes screenOut{ from{opacity:1;transform:translateX(0);} to{opacity:0;transform:translateX(-28px);} }
-[data-motion="reduced"] .screen.enter, [data-motion="reduced"] .screen.leave{ animation:fadeOnly 200ms ease forwards; }
-@keyframes fadeOnly{ from{opacity:0;} to{opacity:1;} }
+[data-motion="reduced"] .screen.enter{ animation:fadeIn 200ms ease; }
+[data-motion="reduced"] .screen.leave{ animation:fadeOut 200ms ease forwards; }
+@keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
+@keyframes fadeOut{ from{opacity:1;} to{opacity:0;} }
 
 .screen-title{ font-size:26px; color:var(--ink); text-align:center; margin:6px 0 4px; }
 .screen-instruction{
@@ -174,7 +184,7 @@ p{margin:0;}
   border:8px solid transparent;
   border-top-color:var(--white);
 }
-#carlSvg{ width:92px; height:92px; display:block; transform-origin:50% 90%; }
+#carlSvg{ width:76px; height:76px; display:block; transform-origin:50% 90%; }
 
 .carl-idle #carlBody{ animation:carlBreathe 2.2s ease-in-out infinite; }
 @keyframes carlBreathe{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.045);} }
@@ -290,6 +300,7 @@ p{margin:0;}
 [data-motion="reduced"] #builder-floater{ animation:none; }
 #builder-floater.dragging{ cursor:grabbing; animation:none; }
 #builder-floater.selected{ box-shadow:0 0 0 5px var(--yellow), var(--card-shadow); }
+#builder-floater.letter-mode{ font-family:var(--font-display); font-weight:800; color:var(--plum-dark); }
 #builder-baskets{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; width:100%; }
 .basket{
   width:88px; min-height:88px; border-radius:var(--radius-md);
@@ -297,31 +308,61 @@ p{margin:0;}
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   font-family:var(--font-display); font-size:30px; font-weight:800; color:var(--plum-dark);
   position:relative;
-  transition:transform 150ms ease, box-shadow 150ms ease;
+  transition:transform 150ms ease, box-shadow 150ms ease, background 200ms ease;
 }
-.basket.glow{ animation:basketGlow 1.1s ease-in-out infinite; }
-@keyframes basketGlow{ 0%,100%{box-shadow:var(--card-shadow);} 50%{box-shadow:0 0 0 6px rgba(255,209,102,0.7), var(--card-shadow);} }
+.basket.basket-pic{ font-family:var(--font-body); font-weight:400; color:var(--ink); font-size:36px; }
 .basket.gulp{ animation:basketGulp 300ms ease; }
 @keyframes basketGulp{ 0%{transform:scale(1);} 40%{transform:scale(0.82,1.18);} 100%{transform:scale(1);} }
+.basket.correct-flash{ background:linear-gradient(180deg,#DFF6E8,#C9EFD8); box-shadow:0 0 0 5px var(--success), var(--card-shadow); }
 .basket .basket-check{ position:absolute; bottom:-8px; font-size:22px; }
 .basket.drop-target-hover{ transform:scale(1.08); }
 
-/* letter train level 4 */
-#train-track{ display:flex; gap:12px; align-items:flex-end; margin-top:20px; width:100%; max-width:480px; justify-content:center; flex-wrap:wrap; }
-.train-car{
-  width:78px; height:88px; border-radius:14px 14px 20px 20px;
-  background:linear-gradient(180deg,var(--yellow),var(--yellow-dark));
-  box-shadow:var(--card-shadow);
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-size:32px; font-weight:800; color:var(--white);
+/* letter garden level 4 */
+.garden-target{ display:flex; flex-direction:column; align-items:center; gap:2px; margin-bottom:6px; }
+.garden-target .target-emoji{ font-size:54px; line-height:1; cursor:pointer; }
+.garden-plot{ display:grid; gap:16px; width:100%; max-width:480px; grid-template-columns:repeat(auto-fit,minmax(84px,1fr)); margin-top:12px; }
+.flower{
+  aspect-ratio:1/1; border-radius:50%;
+  background:radial-gradient(circle at 32% 28%, #FFFDF5, var(--white) 70%);
+  box-shadow:var(--card-shadow), 0 0 0 6px rgba(255,209,102,0.35);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display); font-weight:800; font-size:30px; color:var(--plum-dark);
   cursor:pointer;
-  transition:transform 150ms ease, box-shadow 150ms ease;
-  touch-action:none;
+  transition:transform 150ms ease;
 }
-.train-car.picked{ box-shadow:0 0 0 5px var(--plum), var(--card-shadow); transform:translateY(-6px); }
-.train-car.snap{ animation:carSnap 260ms ease; }
-@keyframes carSnap{ 0%{transform:scale(1);} 40%{transform:scale(1.12,0.9);} 100%{transform:scale(1);} }
-.train-car.dragging{ opacity:0.85; z-index:5; }
+.flower:active{ transform:scale(0.94); }
+.flower.bloom{ animation:flowerBloom 600ms cubic-bezier(.34,1.6,.64,1); }
+@keyframes flowerBloom{ 0%{transform:scale(1);} 50%{transform:scale(1.35) rotate(8deg);} 100%{transform:scale(1.08) rotate(0);} }
+.flower.wrong{ animation:tileShake 300ms ease; background:#FBDCD4; }
+.flower.correctDone{ opacity:0.4; pointer-events:none; }
+[data-motion="reduced"] .flower{ animation:none !important; }
+
+/* shared audio / replay button */
+.audio-btn{
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--font-display); font-weight:700; font-size:15px;
+  color:var(--ink); background:var(--white);
+  padding:9px 18px; border-radius:999px; box-shadow:var(--card-shadow);
+  margin-bottom:14px;
+  transition:transform 100ms ease;
+}
+.audio-btn:active{ transform:translateY(3px); }
+
+/* nav arrows for revisiting activities */
+.nav-arrow{
+  position:absolute; top:50%; transform:translateY(-50%);
+  width:54px;height:54px;border-radius:50%;
+  background:var(--white); box-shadow:var(--card-shadow);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px; font-weight:800; color:var(--plum-dark);
+  z-index:45;
+  transition:opacity 150ms ease, transform 150ms ease;
+}
+.nav-arrow-left{ left:8px; }
+.nav-arrow-right{ right:8px; }
+.nav-arrow:active{ transform:translateY(-50%) scale(0.92); }
+.nav-arrow.hide{ display:none; }
+.nav-arrow.disabled{ opacity:0; pointer-events:none; }
 
 /* challenge level 5 */
 #challenge-counter{ font-family:var(--font-display); font-size:16px; color:var(--plum-dark); background:var(--white); padding:6px 16px; border-radius:999px; box-shadow:var(--card-shadow); margin-bottom:8px; }
@@ -392,8 +433,22 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
 
 @media (min-width:700px){
   .screen{ padding-bottom:150px; }
-  #carlSvg{ width:110px; height:110px; }
+  #carlSvg{ width:92px; height:92px; }
 }
+
+/* elements that previously used inline style="" attributes */
+.welcome-title{ font-size:34px; margin-top:20px; }
+.name-input{
+  font-family:var(--font-display); font-size:20px; padding:14px 18px;
+  border-radius:var(--radius-md); border:none; box-shadow:var(--card-shadow);
+  width:100%; max-width:320px; text-align:center; margin-bottom:16px;
+}
+.setting-row-column{ flex-direction:column; align-items:stretch; gap:8px; }
+.btn-voice-test{ align-self:center; font-size:15px; padding:10px 18px; min-height:44px; }
+.break-text{ font-size:16px; color:var(--ink-soft); margin-bottom:16px; }
+.break-actions{ display:flex; gap:12px; }
+.break-actions .big-btn{ flex:1; }
+.challenge-emoji{ font-size:56px; margin-bottom:6px; }
 </style>
 </head>
 <body data-motion="normal" data-contrast="normal" data-dyslexic="off">
@@ -406,13 +461,13 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
   </header>
 
   <main id="screens">
+    <button class="nav-arrow nav-arrow-left hide" id="navLeftBtn" aria-label="Previous activity">‹</button>
+    <button class="nav-arrow nav-arrow-right hide" id="navRightBtn" aria-label="Next activity">›</button>
 
     <section class="screen" id="screen-welcome">
-      <h1 class="screen-title" style="font-size:34px;margin-top:20px;">Alphabet Quest</h1>
-      <p class="screen-instruction">Tap your name so Carl knows who's playing!</p>
-      <div id="welcome-avatars" class="card-grid" style="max-width:420px;margin-bottom:18px;"></div>
-      <input id="nameInput" maxlength="12" placeholder="Type your name" aria-label="Your name"
-        style="font-family:var(--font-display);font-size:20px;padding:14px 18px;border-radius:var(--radius-md);border:none;box-shadow:var(--card-shadow);width:100%;max-width:320px;text-align:center;margin-bottom:16px;">
+      <h1 class="screen-title welcome-title">Alphabet Quest</h1>
+      <p class="screen-instruction">Type your name so Carl knows who's playing!</p>
+      <input id="nameInput" class="name-input" maxlength="12" placeholder="Type your name" aria-label="Your name">
       <button class="big-btn" id="startBtn">Let's play! ▶️</button>
     </section>
 
@@ -439,17 +494,18 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
 
     <section class="screen" id="screen-level3">
       <h1 class="screen-title">Alphabet Builder</h1>
-      <p class="screen-instruction">Drag the picture to the letter it starts with!</p>
+      <p class="screen-instruction">Drag the letter onto the picture it starts with!</p>
       <div id="builder-stage">
-        <div id="builder-floater" tabindex="0" role="button" aria-label="Picture to place"></div>
+        <div id="builder-floater" tabindex="0" role="button" aria-label="Letter to place"></div>
         <div id="builder-baskets"></div>
       </div>
     </section>
 
     <section class="screen" id="screen-level4">
-      <h1 class="screen-title">Letter Train</h1>
-      <p class="screen-instruction">Help Carl put the train cars in order!</p>
-      <div id="train-track"></div>
+      <h1 class="screen-title">Letter Garden 🌱</h1>
+      <p class="screen-instruction">Listen carefully, then tap the flower with the matching letter!</p>
+      <div class="garden-target" id="garden-target"></div>
+      <div class="garden-plot" id="garden-plot"></div>
     </section>
 
     <section class="screen" id="screen-level5">
@@ -457,6 +513,7 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
       <div id="challenge-counter">Question 1 of 6</div>
       <div class="star-row" id="challenge-stars"></div>
       <div id="challenge-q"></div>
+      <button class="audio-btn" id="replay-l5">🔊 Replay Audio</button>
       <div id="challenge-options"></div>
     </section>
 
@@ -482,22 +539,20 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
 
   <div id="carlWrap">
     <div id="carlBubble"></div>
-    <svg id="carlSvg" viewBox="0 0 120 100" role="img" aria-label="Carl the caterpillar mascot">
+    <svg id="carlSvg" viewBox="-16 0 136 100" role="img" aria-label="Carl the bird mascot">
       <g id="carlBody">
-        <ellipse cx="30" cy="80" rx="16" ry="13" fill="#4CAF7D"/>
-        <ellipse cx="52" cy="78" rx="17" ry="14" fill="#5DBF8C"/>
-        <ellipse cx="76" cy="76" rx="18" ry="15" fill="#4CAF7D"/>
+        <path d="M2 72 Q -8 60 4 50 Q 16 52 16 66 Q 17 76 6 76 Q 2 76 2 72 Z" fill="#5B93D6"/>
+        <path d="M6 78 Q -6 74 0 64 Q 12 64 14 74 Q 14 80 6 78 Z" fill="#7FB4EC"/>
+        <ellipse cx="52" cy="80" rx="28" ry="19" fill="#6FA8DC"/>
+        <ellipse cx="56" cy="89" rx="17" ry="9" fill="#FFF6E9"/>
+        <path d="M40 64 Q62 58 66 78 Q60 90 42 84 Q34 74 40 64 Z" fill="#5B93D6"/>
         <g id="carlHead">
-          <ellipse cx="98" cy="70" rx="20" ry="19" fill="#6FCB9C"/>
-          <circle cx="92" cy="65" r="5.5" fill="#2E3A46"/>
-          <circle cx="93.5" cy="63.5" r="1.6" fill="#fff"/>
-          <circle cx="107" cy="65" r="5.5" fill="#2E3A46"/>
-          <circle cx="108.5" cy="63.5" r="1.6" fill="#fff"/>
-          <path d="M92 76 Q99 82 107 76" stroke="#2E3A46" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-          <line x1="94" y1="50" x2="88" y2="40" stroke="#2E3A46" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="88" cy="40" r="3" fill="#FF8B66"/>
-          <line x1="104" y1="50" x2="110" y2="40" stroke="#2E3A46" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="110" cy="40" r="3" fill="#FF8B66"/>
+          <path d="M78 30 Q84 18 90 30" stroke="#5B93D6" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <circle cx="90" cy="50" r="24" fill="#6FA8DC"/>
+          <path d="M90 45 Q76 47 78 60 Q81 71 90 71 Q99 71 102 60 Q104 47 90 45 Z" fill="#FFF6E9"/>
+          <circle cx="97" cy="44" r="5" fill="#2E3A46"/>
+          <circle cx="98.7" cy="42.3" r="1.5" fill="#fff"/>
+          <path d="M110 48 L119 52 L110 58 Z" fill="#FFC85C"/>
         </g>
       </g>
     </svg>
@@ -518,10 +573,10 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
         <span class="setting-label">Reduced motion</span>
         <div class="toggle" id="toggle-motion" role="switch" aria-checked="false" tabindex="0"></div>
       </div>
-      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+      <div class="setting-row setting-row-column">
         <span class="setting-label">Speaking speed</span>
         <input type="range" id="ttsSpeed" min="0.6" max="1.4" step="0.1" value="1">
-        <button class="big-btn plum" id="ttsTestBtn" style="align-self:center;font-size:15px;padding:10px 18px;min-height:44px;">🔊 Test voice</button>
+        <button class="big-btn plum btn-voice-test" id="ttsTestBtn">🔊 Test voice</button>
       </div>
       <button class="big-btn modal-close-btn" id="closeSettingsBtn">Done</button>
     </div>
@@ -530,10 +585,10 @@ input[type=range]{ width:100%; accent-color:var(--plum); height:30px; }
   <div class="modal-overlay" id="breakModal">
     <div class="modal-box" role="dialog" aria-label="Take a break">
       <h2>Take a stretch break?</h2>
-      <p style="font-size:16px;color:var(--ink-soft);margin-bottom:16px;">You've been playing a while. Carl thinks a little stretch would feel great!</p>
-      <div style="display:flex;gap:12px;">
-        <button class="big-btn success" id="breakYes" style="flex:1;">Yes, stretch! 🙆</button>
-        <button class="big-btn plum" id="breakNo" style="flex:1;">Keep playing ▶️</button>
+      <p class="break-text">You've been playing a while. Carl thinks a little stretch would feel great!</p>
+      <div class="break-actions">
+        <button class="big-btn success" id="breakYes">Yes, stretch! 🙆</button>
+        <button class="big-btn plum" id="breakNo">Keep playing ▶️</button>
       </div>
     </div>
   </div>
@@ -567,7 +622,7 @@ var PACKS = [
     {letter:'W',word:'Watermelon',emoji:'🍉'},{letter:'X',word:'X-ray',emoji:'🩻'},
     {letter:'Y',word:'Yo-yo',emoji:'🪀'},{letter:'Z',word:'Zebra',emoji:'🦓'} ]}
 ];
-var LEVEL_NAMES = ['Explore','Match','Alphabet Builder','Letter Train','Challenge'];
+var LEVEL_NAMES = ['Explore','Match','Alphabet Builder','Letter Garden','Challenge'];
 
 var state = {
   name:'',
@@ -575,6 +630,7 @@ var state = {
   packIndex:0,
   unlockedPacks:1,
   levelIndex:0,
+  viewIndex:0,
   packStarsByPack:{},
   totalStars:0,
   masteredLetters:{},
@@ -583,7 +639,8 @@ var state = {
   idleTimer:null,
   idleSeconds:0,
   sessionTimerHandle:null,
-  ttsRate:1
+  ttsRate:1,
+  lastSpeech:''
 };
 
 var $ = function(sel){ return document.querySelector(sel); };
@@ -591,6 +648,7 @@ var $all = function(sel){ return Array.prototype.slice.call(document.querySelect
 var body = document.body;
 
 function speak(text){
+  state.lastSpeech = text;
   try{
     if(!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
@@ -616,7 +674,6 @@ function carlSay(text, state_){
   if(state_) carlSetState(state_);
 }
 function carlSetState(s){
-  carlSvg.className.baseVal ? null : null;
   carlSvg.setAttribute('class','');
   carlSvg.parentElement.className = 'carl-' + s;
   clearTimeout(carlSetState._t);
@@ -625,6 +682,18 @@ function carlSetState(s){
   }
 }
 carlSvg.parentElement.className = 'carl-idle';
+
+/* tap Carl (or his SVG) to hear the last thing again, at any time */
+carlSvg.style.pointerEvents = 'auto';
+carlSvg.style.cursor = 'pointer';
+carlSvg.setAttribute('role','button');
+carlSvg.setAttribute('tabindex','0');
+carlSvg.setAttribute('aria-label','Carl the bird. Tap to hear that again.');
+function replayLastSpeech(){
+  if(state.lastSpeech){ speak(state.lastSpeech); carlSetState('nudge'); }
+}
+carlSvg.addEventListener('click', replayLastSpeech);
+carlSvg.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); replayLastSpeech(); } });
 
 /* ---------- idle + session timers ---------- */
 function resetIdleTimer(){
@@ -671,19 +740,43 @@ function updateTopbar(){
   homeBtn.classList.toggle('hidden-btn', state.screen === 'welcome');
   var wrap = $('#progressBarWrap');
   wrap.innerHTML = '';
-  if(['level1','level2','level3','level4','level5'].indexOf(state.screen) === -1){
+  var isLevelScreen = ['level1','level2','level3','level4','level5'].indexOf(state.screen) !== -1;
+  if(!isLevelScreen){
     wrap.style.visibility = 'hidden';
+    updateNavArrows();
     return;
   }
   wrap.style.visibility = 'visible';
-  var earned = state.packStarsByPack[currentPack().id] || 0;
   for(var i=0;i<5;i++){
-    var seg = document.createElement('div');
-    seg.className = 'progress-seg' + (i < earned ? ' filled' : '');
+    var seg = document.createElement('button');
+    seg.type = 'button';
+    var done = i < state.levelIndex;
+    var reachable = i <= state.levelIndex;
+    seg.className = 'progress-seg' + (done ? ' filled' : '') + (i === state.viewIndex ? ' current' : '');
+    seg.textContent = done ? '✓' : '';
+    seg.setAttribute('aria-label', LEVEL_NAMES[i] + (done ? ' — completed, tap to review' : (reachable ? ' — in progress' : ' — locked')));
+    if(reachable){
+      seg.addEventListener('click', (function(idx){ return function(){ viewLevel(idx); }; })(i));
+    } else {
+      seg.disabled = true;
+    }
     wrap.appendChild(seg);
   }
-  wrap.setAttribute('aria-valuenow', earned);
+  wrap.setAttribute('aria-valuenow', state.levelIndex);
+  updateNavArrows();
 }
+
+function updateNavArrows(){
+  var leftBtn = $('#navLeftBtn'), rightBtn = $('#navRightBtn');
+  var isLevelScreen = ['level1','level2','level3','level4','level5'].indexOf(state.screen) !== -1;
+  leftBtn.classList.toggle('hide', !isLevelScreen);
+  rightBtn.classList.toggle('hide', !isLevelScreen);
+  if(!isLevelScreen) return;
+  leftBtn.classList.toggle('disabled', state.viewIndex <= 0);
+  rightBtn.classList.toggle('disabled', state.viewIndex >= state.levelIndex);
+}
+$('#navLeftBtn').addEventListener('click', function(){ viewLevel(state.viewIndex - 1); });
+$('#navRightBtn').addEventListener('click', function(){ viewLevel(state.viewIndex + 1); });
 
 function currentPack(){ return PACKS[state.packIndex]; }
 
@@ -721,24 +814,6 @@ function confettiBurst(count){
 }
 
 /* ---------- WELCOME ---------- */
-var AVATARS = ['🐸','🦊','🐰','🐼','🦉','🐢'];
-(function initWelcome(){
-  var grid = $('#welcome-avatars');
-  AVATARS.forEach(function(a){
-    var c = document.createElement('button');
-    c.className = 'opt-btn';
-    c.style.fontSize = '40px';
-    c.setAttribute('aria-label','Pick avatar');
-    c.textContent = a;
-    c.addEventListener('click', function(){
-      $all('#welcome-avatars .opt-btn').forEach(function(b){ b.style.boxShadow = 'var(--card-shadow)'; });
-      c.style.boxShadow = '0 0 0 4px var(--plum), var(--card-shadow)';
-      if(!$('#nameInput').value) $('#nameInput').value = '';
-    });
-    grid.appendChild(c);
-  });
-})();
-
 $('#startBtn').addEventListener('click', function(){
   var name = $('#nameInput').value.trim();
   state.name = name || 'friend';
@@ -821,9 +896,19 @@ function renderLevelMenu(){
 }
 
 function startLevel(){
-  var lvl = state.levelIndex;
+  state.viewIndex = state.levelIndex;
+  renderCurrentView();
+}
+
+function viewLevel(idx){
+  if(idx < 0 || idx > state.levelIndex) return;
+  state.viewIndex = idx;
+  renderCurrentView();
+}
+
+function renderCurrentView(){
+  var lvl = state.viewIndex;
   var screenId = 'level' + (lvl+1);
-  updateTopbar();
   if(lvl===0) renderLevel1();
   else if(lvl===1) renderLevel2();
   else if(lvl===2) renderLevel3();
@@ -833,12 +918,26 @@ function startLevel(){
 }
 
 function completeLevel(){
-  awardPackStar();
   state.levelIndex++;
+  awardPackStar();
   if(state.levelIndex >= 5){
     showInterstitial();
   } else {
     setTimeout(startLevel, reducedMotion()?150:450);
+  }
+}
+
+/* Called when a level's win-condition is met. If the child was reviewing an
+   already-completed activity (reached via the nav arrows / progress dots),
+   we celebrate but don't touch real progress — then hop back to wherever
+   they actually left off. */
+function finishViewedLevel(){
+  if(state.viewIndex === state.levelIndex){
+    completeLevel();
+  } else {
+    carlSay('Great review!', 'celebrate');
+    confettiBurst(30);
+    setTimeout(function(){ viewLevel(state.levelIndex); }, 900);
   }
 }
 
@@ -878,7 +977,7 @@ function renderLevel1(){
           setTimeout(function(){
             confettiBurst(50);
             carlSay('Yay! You explored them all!', 'celebrate');
-            setTimeout(completeLevel, 900);
+            setTimeout(finishViewedLevel, 900);
           }, 350);
         }
       }
@@ -933,10 +1032,10 @@ function renderLevel2(){
     tile.dataset.letter = item.letter;
     tile.addEventListener('click', function(){
       if(tile.classList.contains('done')) return;
-      if(!selectedLetter){
-        speak('Pick a letter first!');
-        return;
-      }
+      /* tapping a picture always says its name, so the child can hear it
+         again as many times as they like before (or without) picking a letter */
+      speak(item.word);
+      if(!selectedLetter) return;
       if(selectedLetter === item.letter){
         tile.classList.add('correct');
         var letterTile = letterCol.querySelector('.selected');
@@ -951,7 +1050,7 @@ function renderLevel2(){
           if(matchedCount >= pics.length){
             confettiBurst(50);
             carlSay('Great matching!', 'celebrate');
-            setTimeout(completeLevel, 900);
+            setTimeout(finishViewedLevel, 900);
           }
         }, 500);
       } else {
@@ -974,18 +1073,19 @@ function renderLevel2(){
 function renderLevel3(){
   var pack = currentPack();
   var queue = shuffle(pack.letters);
-  var wrongInRow = 0;
   var floater = $('#builder-floater');
   var basketsWrap = $('#builder-baskets');
   basketsWrap.innerHTML = '';
-  carlSay('Drag the picture to its letter!', 'idle');
+  floater.classList.add('letter-mode');
+  carlSay('Drag the letter onto its picture!', 'idle');
 
   var basketEls = {};
   shuffle(pack.letters).forEach(function(item){
     var b = document.createElement('div');
-    b.className = 'basket';
+    b.className = 'basket basket-pic';
     b.dataset.letter = item.letter;
-    b.innerHTML = item.letter;
+    b.innerHTML = item.emoji;
+    b.setAttribute('aria-label', item.word);
     basketsWrap.appendChild(b);
     basketEls[item.letter] = b;
   });
@@ -997,14 +1097,12 @@ function renderLevel3(){
     if(queue.length === 0){
       confettiBurst(50);
       carlSay('You built the whole pack!', 'celebrate');
-      setTimeout(completeLevel, 900);
+      setTimeout(finishViewedLevel, 900);
       return;
     }
-    wrongInRow = 0;
-    $all('.basket').forEach(function(b){ b.classList.remove('glow'); });
     current = queue.shift();
-    floater.textContent = current.emoji;
-    floater.setAttribute('aria-label', current.word);
+    floater.textContent = current.letter;
+    floater.setAttribute('aria-label', 'Letter ' + current.letter);
     floater.classList.remove('selected');
     selectMode = false;
   }
@@ -1012,21 +1110,19 @@ function renderLevel3(){
   function handleDrop(targetLetter){
     var basket = basketEls[targetLetter];
     if(targetLetter === current.letter){
-      basket.classList.add('gulp');
-      basket.innerHTML += '<div class="basket-check">✓</div>';
-      speak('Yes! ' + current.word + ' starts with ' + current.letter);
+      basket.classList.add('gulp','correct-flash');
+      var check = document.createElement('div');
+      check.className = 'basket-check';
+      check.textContent = '✓';
+      basket.appendChild(check);
+      speak('Yes! ' + current.letter + ' is for ' + current.word);
       carlSetState('celebrate');
-      setTimeout(function(){ basket.classList.remove('gulp'); loadNext(); }, 350);
+      setTimeout(function(){ basket.classList.remove('gulp','correct-flash'); loadNext(); }, 500);
     } else {
-      wrongInRow++;
       speak('Try again');
       carlSay('Almost! Try again', 'encourage');
       floater.style.transition = 'transform 400ms cubic-bezier(.3,-0.4,.4,1.3)';
       floater.style.transform = 'translate(0,0)';
-      if(wrongInRow >= 2){
-        var correctBasket = basketEls[current.letter];
-        correctBasket.classList.add('glow');
-      }
     }
   }
 
@@ -1053,9 +1149,9 @@ function renderLevel3(){
 
   // tap-to-select-then-place fallback (also handles touch)
   floater.addEventListener('click', function(){
+    speak(current.letter);
     selectMode = !selectMode;
     floater.classList.toggle('selected', selectMode);
-    if(selectMode) speak(current.word);
   });
   basketsWrap.addEventListener('click', function(e){
     var b = e.target.closest('.basket');
@@ -1104,66 +1200,74 @@ function renderLevel3(){
   loadNext();
 }
 
-/* ---------- LEVEL 4: Letter Train ---------- */
+/* ---------- LEVEL 4: Letter Garden ---------- */
 function renderLevel4(){
   var pack = currentPack();
-  var chosen = shuffle(pack.letters).slice(0, Math.min(4, pack.letters.length)).sort(function(a,b){ return a.letter.localeCompare(b.letter); });
-  var order = shuffle(chosen);
-  var track = $('#train-track');
-  track.innerHTML = '';
-  carlSay('Put the cars in order!', 'idle');
-  var picked = null;
+  var rounds = shuffle(pack.letters);
+  var plot = $('#garden-plot');
+  var targetWrap = $('#garden-target');
+  var qi = 0;
+  carlSay('Find the letters in the garden!', 'idle');
 
-  function render(){
-    track.innerHTML = '';
-    order.forEach(function(item, i){
-      var car = document.createElement('div');
-      car.className = 'train-car';
-      car.textContent = item.letter;
-      car.dataset.idx = i;
-      car.setAttribute('role','button'); car.setAttribute('tabindex','0');
-      car.addEventListener('click', function(){ onPick(i, car); });
-      track.appendChild(car);
+  function layoutFlowers(){
+    plot.innerHTML = '';
+    shuffle(pack.letters).forEach(function(item){
+      var f = document.createElement('div');
+      f.className = 'flower';
+      f.textContent = item.letter;
+      f.dataset.letter = item.letter;
+      f.setAttribute('role','button'); f.setAttribute('tabindex','0');
+      f.setAttribute('aria-label', 'Letter ' + item.letter);
+      f.addEventListener('click', function(){ onPick(item.letter, f); });
+      f.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); onPick(item.letter, f); } });
+      plot.appendChild(f);
     });
   }
-  function checkAll(){
-    for(var i=0;i<order.length;i++){
-      if(order[i].letter !== chosen[i].letter) return false;
+
+  function showTarget(){
+    if(qi >= rounds.length){
+      confettiBurst(50);
+      carlSay('The garden is blooming! Great job!', 'celebrate');
+      setTimeout(finishViewedLevel, 900);
+      return;
     }
-    return true;
+    var t = rounds[qi];
+    targetWrap.innerHTML = '';
+    var emoji = document.createElement('div');
+    emoji.className = 'target-emoji';
+    emoji.textContent = t.emoji;
+    emoji.setAttribute('role','button');
+    emoji.setAttribute('tabindex','0');
+    emoji.setAttribute('aria-label', 'Replay audio clue');
+    var srWord = document.createElement('div');
+    srWord.className = 'sr-only';
+    srWord.textContent = 'Find the letter for ' + t.word;
+    targetWrap.appendChild(emoji);
+    targetWrap.appendChild(srWord);
+    var playClue = function(){ speak('Find the letter for ' + t.word); carlSetState('nudge'); };
+    emoji.addEventListener('click', playClue);
+    emoji.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); playClue(); } });
+    playClue();
+    layoutFlowers();
   }
-  function onPick(i, el){
-    if(picked === null){
-      picked = i;
-      el.classList.add('picked');
-      speak(order[i].letter);
-    } else if(picked === i){
-      el.classList.remove('picked');
-      picked = null;
+
+  function onPick(letter, el){
+    if(el.classList.contains('correctDone')) return;
+    var target = rounds[qi];
+    if(letter === target.letter){
+      el.classList.add('bloom','correctDone');
+      speak('Yes! ' + target.letter + ' is for ' + target.word);
+      carlSetState('celebrate');
+      qi++;
+      setTimeout(showTarget, 800);
     } else {
-      var tmp = order[picked];
-      order[picked] = order[i];
-      order[i] = tmp;
-      render();
-      var cars = $all('.train-car');
-      if(cars[i]) { cars[i].classList.add('snap'); setTimeout(function(){ cars[i] && cars[i].classList.remove('snap'); }, 260); }
-      if(cars[picked]) { cars[picked].classList.add('snap'); setTimeout(function(){ cars[picked] && cars[picked].classList.remove('snap'); }, 260); }
-      picked = null;
-      if(checkAll()){
-        speak('All aboard! Great job!');
-        carlSay('Choo choo! Perfect order!', 'celebrate');
-        confettiBurst(60);
-        track.style.transition = 'transform 900ms ease';
-        track.style.transform = 'translateX(120%)';
-        setTimeout(function(){
-          track.style.transition = '';
-          track.style.transform = '';
-          completeLevel();
-        }, 950);
-      }
+      el.classList.add('wrong');
+      carlSay('Try again!', 'encourage');
+      setTimeout(function(){ el.classList.remove('wrong'); }, 350);
     }
   }
-  render();
+
+  showTarget();
 }
 
 /* ---------- LEVEL 5: Challenge ---------- */
@@ -1204,11 +1308,13 @@ function renderLevel5(){
     starRow.appendChild(slot);
   }
 
+  var replayBtn = $('#replay-l5');
+
   function askQuestion(){
     if(qi >= questions.length){
       confettiBurst(70);
       carlSay('Challenge complete! Amazing!', 'celebrate');
-      setTimeout(completeLevel, 1000);
+      setTimeout(finishViewedLevel, 1000);
       return;
     }
     wrongAttempts = 0;
@@ -1222,7 +1328,6 @@ function renderLevel5(){
 
     if(q.type === 'listen'){
       promptText = 'Listen and choose the letter!';
-      speak(q.target.word);
       renderOpt = function(item){ return item.letter; };
     } else if(q.type === 'image'){
       promptText = 'Which letter does this start with?';
@@ -1234,8 +1339,24 @@ function renderLevel5(){
       promptText = 'What letter completes the picture?';
       renderOpt = function(item){ return item.letter; };
     }
-    qEl.innerHTML = (q.type==='image'||q.type==='missing') ? ('<div style="font-size:56px;margin-bottom:6px;">'+q.target.emoji+'</div>' + promptText) : promptText;
-    speak(promptText);
+    qEl.textContent = '';
+    if(q.type === 'image' || q.type === 'missing'){
+      var emojiEl = document.createElement('div');
+      emojiEl.className = 'challenge-emoji';
+      emojiEl.textContent = q.target.emoji;
+      qEl.appendChild(emojiEl);
+    }
+    qEl.appendChild(document.createTextNode(promptText));
+
+    function playQuestionAudio(){
+      if(q.type === 'listen'){
+        speak(promptText + '. ' + q.target.word);
+      } else {
+        speak(promptText);
+      }
+    }
+    replayBtn.onclick = function(){ playQuestionAudio(); carlSetState('nudge'); };
+    playQuestionAudio();
 
     q.options.forEach(function(opt){
       var btn = document.createElement('button');
@@ -1259,11 +1380,6 @@ function renderLevel5(){
           wrongAttempts++;
           carlSay('Almost! Try again', 'encourage');
           setTimeout(function(){ btn.classList.remove('wrong'); }, 350);
-          if(wrongAttempts >= 2){
-            var correctBtn = Array.prototype.find.call(optWrap.children, function(b){ return b.getAttribute('aria-label') === q.target.letter; });
-            if(correctBtn) correctBtn.classList.add('glow');
-            carlSay('Here is a hint!', 'nudge');
-          }
           if(!q.missed){
             q.missed = true;
             questions.push(q);
