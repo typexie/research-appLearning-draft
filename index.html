@@ -191,6 +191,47 @@
     display:inline-block; font-family:var(--font-display); font-weight:700; font-size:.8rem;
     background:var(--sky); color:var(--plum); padding:4px 12px; border-radius:20px; margin-bottom:10px;
   }
+  .big-heading{font-size:2.3rem; text-align:center; margin:6px 0 18px; color:var(--plum);}
+
+  /* End-of-session celebration card */
+  .end-card{
+    position:relative; overflow:hidden;
+    background:linear-gradient(160deg, #FFF3D6 0%, #EAF6FF 55%, #E7F8EE 100%);
+    text-align:center; align-items:center; justify-content:center;
+  }
+  .confetti-piece{
+    position:absolute; top:-24px; border-radius:3px; opacity:.9;
+    animation:confetti-fall linear infinite;
+  }
+  @keyframes confetti-fall{
+    0%{ transform:translateY(0) rotate(0deg); opacity:1; }
+    100%{ transform:translateY(420px) rotate(340deg); opacity:.2; }
+  }
+  .end-trophy{font-size:5.5rem; animation:trophy-pop .6s ease; line-height:1;}
+  @keyframes trophy-pop{
+    0%{transform:scale(0) rotate(-15deg); opacity:0;}
+    60%{transform:scale(1.15) rotate(6deg); opacity:1;}
+    100%{transform:scale(1) rotate(0deg);}
+  }
+  .end-heading{font-size:2.6rem; color:var(--coral); margin:6px 0 2px;}
+  .end-badge{
+    display:inline-block; font-family:var(--font-display); font-weight:700; font-size:1.05rem;
+    background:var(--white); color:var(--plum); padding:10px 22px; border-radius:24px;
+    box-shadow:0 4px 0 rgba(43,33,64,0.12); margin:14px 0;
+  }
+  .end-stars{font-size:2rem; letter-spacing:6px; margin:8px 0 4px;}
+  @media (prefers-reduced-motion: reduce){
+    .confetti-piece{animation:none; display:none;}
+    .end-trophy{animation:none;}
+  }
+  .level-grid{grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:18px;}
+  .level-card{
+    min-height:190px; border-width:5px; border-style:solid; border-radius:26px;
+    justify-content:center; gap:10px; box-shadow:0 8px 0 rgba(43,33,64,0.18);
+  }
+  .level-card:active{transform:translateY(6px); box-shadow:none;}
+  .level-emoji{font-size:5rem; line-height:1;}
+  .level-title{font-size:1.6rem; color:var(--ink);}
   table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:12px;}
   th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--sky-deep);}
   th{font-family:var(--font-display);color:var(--plum);}
@@ -198,6 +239,7 @@
 
   @media (max-width:480px){
     h1{font-size:1.5rem;} .obj-emoji{font-size:2.3rem;} .big-emoji{font-size:3.2rem;}
+    .level-emoji{font-size:3.6rem;} .level-title{font-size:1.3rem;} .big-heading{font-size:1.8rem;}
   }
   @media (prefers-reduced-motion: reduce){
     .mascot.happy,.mascot.oops,.screen{animation:none;}
@@ -274,8 +316,60 @@ let state = {
   events: [],
   l1: { clicked:{}, replayCounts:{} },
   l2: { pairs:[], selectedLetter:null, matched:{}, attempts:{}, confusions:[] },
-  l3: { index:0, correctCount:0, wrongStreak:0, itemStart:null, attemptsThisItem:0 },
+  l3: { index:0, correctCount:0, wrongStreak:0, itemStart:null, attemptsThisItem:0, queue:[], mode:'level3' },
+  mastery: {}, // per-letter spaced-repetition record: { box, correctCount, wrongCount, lastSeen, dueAt }
 };
+
+/* ---------- Spaced repetition (Leitner-style) ----------
+   Box 0 = just missed, due immediately. Higher boxes = better known,
+   due further in the future. A correct answer promotes a letter one
+   box; a wrong answer resets it to box 0. */
+const BOX_INTERVAL_DAYS = [0, 1, 2, 4, 7, 14];
+function boxIntervalDays(box){ return BOX_INTERVAL_DAYS[Math.min(box, BOX_INTERVAL_DAYS.length-1)]; }
+
+async function loadMastery(){
+  try{
+    const res = await window.storage.get('mastery:' + state.learnerId);
+    state.mastery = (res && res.value) ? JSON.parse(res.value) : {};
+  }catch(e){ state.mastery = {}; }
+}
+async function saveMastery(){
+  try{ await window.storage.set('mastery:' + state.learnerId, JSON.stringify(state.mastery)); }
+  catch(e){ /* storage unavailable */ }
+}
+function updateMastery(letter, correct){
+  if(!letter) return;
+  if(!state.mastery[letter]) state.mastery[letter] = { box:0, correctCount:0, wrongCount:0, lastSeen:null, dueAt:0 };
+  const m = state.mastery[letter];
+  if(correct){ m.box = Math.min(m.box+1, BOX_INTERVAL_DAYS.length-1); m.correctCount++; }
+  else { m.box = 0; m.wrongCount++; }
+  m.lastSeen = Date.now();
+  m.dueAt = Date.now() + boxIntervalDays(m.box) * 24*60*60*1000;
+  saveMastery();
+  logEvent('mastery_update', { letter, correct, box:m.box, dueInDays: boxIntervalDays(m.box) });
+}
+function dueLetters(){
+  const now = Date.now();
+  return Object.keys(state.mastery).filter(l => state.mastery[l].dueAt <= now);
+}
+function letterForItem(item){
+  if(item.type==='missing') return item.answer;
+  if(item.type==='caseMatch') return item.upper;
+  return item.obj ? item.obj.letter : null;
+}
+function buildReviewQueue(letters){
+  return shuffle(letters).slice(0,6).map(letter=>{
+    const obj = OBJECTS.find(o=>o.letter===letter);
+    if(!obj) return null;
+    const type = shuffle(['audioToLetter','imageToLetter','caseMatch'])[0];
+    const distractorLetters = shuffle(OBJECTS.filter(o=>o.letter!==letter).map(o=>o.letter)).slice(0,2);
+    if(type==='caseMatch'){
+      const lowerDistractors = distractorLetters.map(l=>l.toLowerCase());
+      return { type:'caseMatch', upper:letter, lowerOptions: shuffle([letter.toLowerCase(), ...lowerDistractors]), obj };
+    }
+    return { type, obj, options: shuffle([letter, ...distractorLetters]) };
+  }).filter(Boolean);
+}
 
 const synth = window.speechSynthesis;
 
@@ -327,6 +421,7 @@ function render(){
   app.dataset.contrast = state.settings.contrast ? 'high' : 'normal';
   let html = topbarHTML();
   if(state.screen==='welcome') html += welcomeScreen();
+  else if(state.screen==='reviewIntro') html += reviewIntroScreen();
   else if(state.screen==='levelSelect') html += levelSelectScreen();
   else if(state.screen==='level1') html += level1Screen();
   else if(state.screen==='level2') html += level2Screen();
@@ -353,7 +448,7 @@ function welcomeScreen(){
   <div class="screen">
     <div class="mascot-row">
       <div class="mascot" id="mascot">🐛</div>
-      <div class="speech-bubble">Hi there! I'm Cami the Caterpillar. What's your name?</div>
+      <div class="speech-bubble">Hi there! I'm Carl the Caterpillar. What's your name?</div>
     </div>
     <h1>Let's learn letters together!</h1>
     <p>Type your name (or your learner ID) to start your alphabet adventure.</p>
@@ -365,44 +460,93 @@ function welcomeScreen(){
   </div>`;
 }
 
-function startSession(){
+async function startSession(){
   const val = document.getElementById('nameInput').value.trim();
   state.learnerId = val || ('learner-' + Math.random().toString(36).slice(2,7));
   state.sessionStart = Date.now();
   logEvent('session_start', {});
+  await loadMastery();
+  const due = dueLetters();
+  if(due.length > 0){
+    state.dueLettersCache = due;
+    state.screen = 'reviewIntro';
+  } else {
+    state.screen = 'levelSelect';
+  }
+  render();
+}
+
+// ---------- Review (spaced repetition) ----------
+function reviewIntroScreen(){
+  const due = state.dueLettersCache || dueLetters();
+  return `
+  <div class="screen">
+    <div class="mascot-row">
+      <div class="mascot" id="mascot">🐛</div>
+      <div class="speech-bubble">Welcome back! Let's warm up with a quick review first.</div>
+    </div>
+    <h1>Quick Review</h1>
+    <p>${due.length} letter${due.length===1?'':'s'} are ready for another look: <strong>${due.join(', ')}</strong></p>
+    <div class="footer-actions">
+      <button class="btn secondary" onclick="skipReview()">Skip for now</button>
+      <button class="btn sun" onclick="startReview()">Start review ✨</button>
+    </div>
+  </div>`;
+}
+function startReview(){
+  const due = state.dueLettersCache || dueLetters();
+  state.l3 = { index:0, correctCount:0, wrongStreak:0, itemStart:Date.now(), attemptsThisItem:0,
+               queue: buildReviewQueue(due), mode:'review' };
+  logEvent('review_start', { dueLetters: (state.dueLettersCache||[]).join(',') });
+  state.screen = 'level3';
+  render();
+}
+function skipReview(){
+  logEvent('review_skipped', { dueLetters: (state.dueLettersCache||[]).join(',') });
   state.screen = 'levelSelect';
   render();
 }
 
 // ---------- Level Select ----------
 function levelSelectScreen(){
+  const due = dueLetters();
+  const bubbleText = state.flashMessage || `Great to meet you, ${escapeHTML(state.learnerId)}! Pick a level to start.`;
+  state.flashMessage = null;
   return `
   <div class="screen">
     <div class="mascot-row">
       <div class="mascot">🐛</div>
-      <div class="speech-bubble">Great to meet you, ${escapeHTML(state.learnerId)}! Pick a level to start.</div>
+      <div class="speech-bubble">${bubbleText}</div>
     </div>
-    <h1>Choose your adventure</h1>
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
-      ${levelCard(1,'Explore','Meet objects, letters and sounds. No scoring — just discovery!','🔎', 'var(--leaf)')}
-      ${levelCard(2,'Match','Match letters to pictures. Watch out for tricky look-alikes!','🧩', 'var(--sun)')}
-      ${levelCard(3,'Challenge','Mixed puzzles: fill-ins, sounds, and upper/lowercase!','🏆', 'var(--coral)')}
+    <h1 class="big-heading">Choose Your Adventure!</h1>
+    ${due.length ? `
+    <button class="obj-card" style="min-height:auto;padding:14px 16px;flex-direction:row;justify-content:space-between;align-items:center;background:#FFF3D6;margin-bottom:10px;" onclick="startReviewFromMenu()">
+      <span style="display:flex;align-items:center;gap:10px;"><span class="obj-emoji" style="font-size:1.8rem;">🔁</span><span class="obj-word">Review ${due.length} letter${due.length===1?'':'s'}</span></span>
+      <span class="small-muted">Tap to practice</span>
+    </button>` : ''}
+    <div class="grid level-grid">
+      ${levelCard(1,'Explore','🔎', 'var(--leaf)', 'var(--leaf-dark)')}
+      ${levelCard(2,'Match','🧩', 'var(--sun)', 'var(--sun-dark)')}
+      ${levelCard(3,'Challenge','🏆', 'var(--coral)', '#c9483a')}
     </div>
   </div>`;
 }
-function levelCard(n,title,desc,emoji,color){
+function startReviewFromMenu(){
+  state.dueLettersCache = dueLetters();
+  startReview();
+}
+function levelCard(n,title,emoji,color,darkColor){
   return `
-  <button class="obj-card" style="min-height:170px;background:${color}22;" onclick="goToLevel(${n})">
-    <span class="obj-emoji">${emoji}</span>
-    <span class="obj-word">Level ${n}: ${title}</span>
-    <span class="small-muted" style="text-align:center;">${desc}</span>
+  <button class="obj-card level-card" style="background:${color};border-color:${darkColor};" onclick="goToLevel(${n})">
+    <span class="obj-emoji level-emoji">${emoji}</span>
+    <span class="obj-word level-title">${title}</span>
   </button>`;
 }
 function goToLevel(n){
   state.level = n;
   if(n===1){ state.l1 = {clicked:{}, replayCounts:{}}; state.screen='level1'; }
   if(n===2){ setupLevel2(); state.screen='level2'; }
-  if(n===3){ state.l3 = {index:0, correctCount:0, wrongStreak:0, itemStart:Date.now(), attemptsThisItem:0}; state.screen='level3'; }
+  if(n===3){ state.l3 = {index:0, correctCount:0, wrongStreak:0, itemStart:Date.now(), attemptsThisItem:0, queue: L3_ITEMS.map(it=>({...it})), mode:'level3'}; state.screen='level3'; }
   logEvent('level_start', {});
   render();
 }
@@ -431,11 +575,10 @@ function level1Screen(){
 function objCard(o,i){
   const clicked = state.l1.clicked[o.letter];
   return `
-  <button class="obj-card ${clicked?'clicked':''}" onclick="clickObject(${i})" aria-label="${o.word}">
+  <button class="obj-card ${clicked?'clicked':''}" onclick="clickObject(${i})" aria-label="Play sound for ${o.word}">
     <span class="obj-emoji">${o.emoji}</span>
     <span class="obj-word">${o.word}</span>
     <span class="obj-letters">${clicked ? o.letter+' '+o.letter.toLowerCase() : ''}</span>
-    <span class="replay-btn" onclick="event.stopPropagation(); replayObject(${i})" aria-label="Replay audio for ${o.word}">🔊</span>
   </button>`;
 }
 function clickObject(i){
@@ -444,14 +587,8 @@ function clickObject(i){
   state.l1.clicked[o.letter] = (state.l1.clicked[o.letter]||0)+1;
   bounceMascot('happy');
   speak(`${o.letter}. ${o.word}. ${o.letter} says ${o.sound}.`);
-  logEvent('l1_click', { item:o.word, letter:o.letter, firstTime:first, timesClicked: state.l1.clicked[o.letter] });
+  logEvent(first ? 'l1_click' : 'audio_replay', { item:o.word, letter:o.letter, firstTime:first, timesClicked: state.l1.clicked[o.letter] });
   render();
-}
-function replayObject(i){
-  const o = OBJECTS[i];
-  state.l1.replayCounts[o.letter] = (state.l1.replayCounts[o.letter]||0)+1;
-  speak(`${o.letter}. ${o.word}. ${o.letter} says ${o.sound}.`);
-  logEvent('audio_replay', { item:o.word, letter:o.letter, replayCount: state.l1.replayCounts[o.letter] });
 }
 function backToLevels(){ state.screen='levelSelect'; render(); }
 
@@ -516,6 +653,7 @@ function selectPic(letter, btnEl){
     bounceMascot('happy');
     speak(`Yes! ${sel} for ${target.word}!`);
     logEvent('l2_match', { letter:sel, item:target.word, correct:true, attempts: state.l2.attempts[sel] });
+    updateMastery(sel, true);
     state.l2.selectedLetter = null;
     render();
   } else {
@@ -523,6 +661,7 @@ function selectPic(letter, btnEl){
     const missedObj = state.l2.pairs.find(o=>o.letter===letter);
     state.l2.confusions.push({expected:sel, chosen:letter});
     logEvent('l2_match', { letter:sel, item: missedObj? missedObj.word: '', correct:false, attempts: state.l2.attempts[sel], confusedWith:letter });
+    updateMastery(sel, false);
     speak(`Not quite — try again!`);
     btnEl.classList.add('wrong');
     setTimeout(()=>btnEl.classList.remove('wrong'), 500);
@@ -536,11 +675,21 @@ function bumpBubble(text){
 // ---------- Level 3 ----------
 function level3Screen(){
   const l3 = state.l3;
-  if(l3.index >= L3_ITEMS.length){
-    state.screen='end'; render(); return '';
+  if(l3.index >= l3.queue.length){
+    // Safety net — normally advanceL3() switches screens before this ever renders.
+    if(l3.mode==='review'){
+      logEvent('review_complete', { correctCount:l3.correctCount, total:l3.queue.length });
+      state.flashMessage = `Nice review! You got ${l3.correctCount} of ${l3.queue.length} right. 🌟`;
+      state.screen='levelSelect';
+      return levelSelectScreen();
+    } else {
+      state.screen='end';
+      return endScreen();
+    }
   }
-  const item = L3_ITEMS[l3.index];
-  const pct = Math.round((l3.index/L3_ITEMS.length)*100);
+  const item = l3.queue[l3.index];
+  const pct = Math.round((l3.index/l3.queue.length)*100);
+  const isReview = l3.mode==='review';
   let body = '';
   if(item.type==='missing'){
     const displayWord = item.word.split('').map((c,i)=> i===item.missingIndex ? '_' : c).join('');
@@ -570,10 +719,10 @@ function level3Screen(){
   }
   return `
   <div class="screen">
-    <span class="level-badge">Level 3 · Challenge (${l3.index+1}/${L3_ITEMS.length})</span>
+    <span class="level-badge">${isReview ? '🔁 Quick Review' : 'Level 3 · Challenge'} (${l3.index+1}/${l3.queue.length})</span>
     <div class="mascot-row">
       <div class="mascot" id="mascot">🐛</div>
-      <div class="stars">${'⭐'.repeat(l3.correctCount)}${'☆'.repeat(L3_ITEMS.length-l3.correctCount)}</div>
+      <div class="stars">${'⭐'.repeat(l3.correctCount)}${'☆'.repeat(Math.max(0,l3.queue.length-l3.correctCount))}</div>
     </div>
     <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
     ${body}
@@ -591,7 +740,7 @@ document.addEventListener('click', function(e){
     if(optBtn && !optBtn.disabled){ answerL3(optBtn); }
   }
 });
-function currentL3Item(){ return L3_ITEMS[state.l3.index]; }
+function currentL3Item(){ return state.l3.queue[state.l3.index]; }
 function playL3Audio(){
   const item = currentL3Item();
   if(item.type==='audioToLetter') speak(item.obj.sound + ', ' + item.obj.sound);
@@ -606,14 +755,17 @@ function answerL3(btnEl){
   const item = currentL3Item();
   const chosen = btnEl.dataset.ans;
   const correct = correctAnswerFor(item);
+  const letter = letterForItem(item);
   state.l3.attemptsThisItem = (state.l3.attemptsThisItem||0)+1;
   const isRight = chosen === correct;
   const rt = state.l3.itemStart ? (Date.now()-state.l3.itemStart) : null;
-  logEvent('l3_answer', {
+  const isReview = state.l3.mode==='review';
+  logEvent(isReview ? 'review_answer' : 'l3_answer', {
     itemType:item.type,
     item: item.obj ? item.obj.word : (item.word||item.upper),
-    chosen, correct:isRight, attempts: state.l3.attemptsThisItem, responseTimeMs: rt
+    letter, chosen, correct:isRight, attempts: state.l3.attemptsThisItem, responseTimeMs: rt
   });
+  updateMastery(letter, isRight);
   const fb = document.getElementById('l3Feedback');
   if(isRight){
     btnEl.classList.add('correct');
@@ -629,6 +781,11 @@ function answerL3(btnEl){
     bounceMascot('oops');
     speak('Try again!');
     state.l3.wrongStreak++;
+    // Same-session spaced repetition: give this item one more shot later in the queue.
+    if(!item._requeuedOnce){
+      item._requeuedOnce = true;
+      state.l3.queue.push({...item, _requeuedOnce:false});
+    }
     if(fb){
       fb.textContent = state.l3.wrongStreak>=3 ? `Hint: it starts like "${item.obj ? item.obj.sound : ''}"` : 'Not quite — try again!';
       fb.className='feedback retry';
@@ -639,23 +796,49 @@ function advanceL3(){
   state.l3.index++;
   state.l3.itemStart = Date.now();
   state.l3.attemptsThisItem = 0;
+  if(state.l3.index >= state.l3.queue.length){
+    if(state.l3.mode==='review'){
+      logEvent('review_complete', { correctCount:state.l3.correctCount, total:state.l3.queue.length });
+      state.flashMessage = `Nice review! You got ${state.l3.correctCount} of ${state.l3.queue.length} right. 🌟`;
+      state.screen = 'levelSelect';
+    } else {
+      state.screen = 'end';
+    }
+  }
   render();
 }
 
 // ---------- End screen ----------
+function confettiPieces(){
+  const colors = ['var(--sun)','var(--leaf)','var(--coral)','var(--plum)','#6EC1FF'];
+  let pieces = '';
+  for(let i=0;i<18;i++){
+    const left = Math.round(Math.random()*96);
+    const size = 8 + Math.round(Math.random()*8);
+    const delay = (Math.random()*1.2).toFixed(2);
+    const duration = (2.2 + Math.random()*1.6).toFixed(2);
+    const color = colors[i % colors.length];
+    const round = i % 3 === 0 ? '50%' : '3px';
+    pieces += `<span class="confetti-piece" style="left:${left}%; width:${size}px; height:${size}px; background:${color}; border-radius:${round}; animation-delay:${delay}s; animation-duration:${duration}s;"></span>`;
+  }
+  return pieces;
+}
 function endScreen(){
   const elapsedMin = state.sessionStart ? Math.round((Date.now()-state.sessionStart)/60000) : 0;
   logEndOnce();
+  const correct = state.l3.correctCount || 0;
+  const total = (state.l3.queue && state.l3.queue.length) || 0;
+  const badgeText = total===0 ? "Way to explore!" : correct===total ? "Perfect score!" : (correct/total)>=0.6 ? "Awesome work!" : "Nice try — keep practicing!";
   return `
-  <div class="screen">
-    <div class="mascot-row">
-      <div class="mascot happy">🐛✨</div>
-      <div class="speech-bubble">You did it, ${escapeHTML(state.learnerId)}!</div>
-    </div>
-    <h1>Great job, see you next time!</h1>
-    <p>You explored letters, matched pictures, and solved challenges in about ${elapsedMin} minute${elapsedMin===1?'':'s'}.</p>
-    <div class="stars">${'⭐'.repeat(state.l3.correctCount||0)}</div>
-    <div class="footer-actions">
+  <div class="screen end-card">
+    ${confettiPieces()}
+    <div class="end-trophy">🏆</div>
+    <h1 class="end-heading">Good Job!</h1>
+    <div class="mascot happy" style="font-size:3rem;">🐛✨</div>
+    <p style="font-size:1.15rem;">Way to go, <strong>${escapeHTML(state.learnerId)}</strong>! You explored letters, matched pictures, and solved challenges in about ${elapsedMin} minute${elapsedMin===1?'':'s'}.</p>
+    <div class="end-badge">${badgeText}</div>
+    <div class="end-stars">${'⭐'.repeat(correct)}${'☆'.repeat(Math.max(0,total-correct))}</div>
+    <div class="footer-actions" style="justify-content:center;gap:16px;">
       <button class="btn secondary" onclick="restartAll()">Start over</button>
       <button class="btn sun" onclick="openSettings()">View / export data</button>
     </div>
@@ -671,6 +854,8 @@ function restartAll(){
   _endLogged = false;
   state.screen='welcome';
   state.level=0;
+  state.dueLettersCache = null;
+  state.flashMessage = null;
   render();
 }
 
